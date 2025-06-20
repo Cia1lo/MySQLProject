@@ -124,6 +124,7 @@ class ResourceReservationApp:
         tk.Button(frame, text="Search Users", command=self.search_users).pack(pady=5)
         tk.Button(frame, text="View All Users", command=self.view_all_users).pack(pady=5)
         tk.Button(frame, text="Users by Category & Time", command=self.users_by_category_time).pack(pady=5)
+        tk.Button(frame, text="Upgrade User to Admin", command=self.upgrade_user_to_admin).pack(pady=5)
 
     def view_usage(self, selection):
         if not selection:
@@ -350,6 +351,34 @@ class ResourceReservationApp:
                 messagebox.showinfo("No Results", f"No users found for category {category} in the specified time frame")
         except ValueError:
             messagebox.showerror("Error", "Invalid date format. Use YYYY-MM-DD HH:MM")
+
+    def upgrade_user_to_admin(self):
+        window = tk.Toplevel(self.root)
+        window.title("Upgrade User to Admin")
+        tk.Label(window, text="Enter Username to Upgrade:").pack()
+        username_entry = tk.Entry(window)
+        username_entry.pack()
+        tk.Button(window, text="Upgrade", command=lambda: self.perform_user_upgrade(username_entry.get(), window)).pack(pady=10)
+
+    def perform_user_upgrade(self, username, window):
+        if not username:
+            messagebox.showerror("Error", "Please enter a username")
+            return
+        user = self.db.get_user_by_username(username, is_admin=True)
+        if not user:
+            messagebox.showerror("Error", "User not found")
+            return
+        if user[3] == 'Admin':
+            messagebox.showinfo("Info", "User is already an Admin")
+            return
+        # Update user type to Admin
+        query = "UPDATE users SET user_type = %s WHERE username = %s"
+        result = self.db.execute_query(query, ('Admin', username))
+        if result is not None and result > 0:
+            messagebox.showinfo("Success", f"User {username} has been upgraded to Admin")
+            window.destroy()
+        else:
+            messagebox.showerror("Error", "Failed to upgrade user")
 
     def get_selected_id(self, selection):
         return int(self.root.focus_get().item(selection)['values'][0])
